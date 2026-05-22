@@ -72,54 +72,23 @@ export const experience = [
 ];
 
 export const sampleProjects: Project[] = [
-  {
-    id: 'stress-analysis',
-    title: 'AI-Driven Lifestyle Stress Analysis System',
-    description:
-      'A wellness intelligence concept that analyzes lifestyle inputs and turns them into personalized stress patterns, recommendations, and daily improvement signals.',
-    tech_stack: ['React', 'TypeScript', 'AI Prompts', 'Supabase', 'Tailwind CSS'],
-    thumbnail_url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=1200&q=80',
-    live_link: 'https://example.com/stress-analysis',
-    github_link: 'https://github.com/yashbajaj02',
-    featured: true,
-    category: 'AI',
-  },
-  {
-    id: 'book-search',
-    title: 'Modern Book Search App',
-    description:
-      'Google Books powered discovery app with live autocomplete, animated responsive cards, title/author search, previews, buying links, and a futuristic dark interface.',
-    tech_stack: ['React', 'Google Books API', 'Framer Motion', 'Tailwind CSS'],
-    thumbnail_url: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1200&q=80',
-    live_link: '/projects?demo=book-search',
-    github_link: 'https://github.com/yashbajaj02',
-    featured: true,
-    category: 'Web App',
-  },
-  {
-    id: 'productivity-assistant',
-    title: 'AI Productivity Assistant',
-    description:
-      'An automation assistant for planning, prioritizing, summarizing tasks, and turning scattered ideas into structured execution systems.',
-    tech_stack: ['React', 'Supabase', 'AI Automation', 'TypeScript'],
-    thumbnail_url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-    live_link: 'https://example.com/productivity-assistant',
-    github_link: 'https://github.com/yashbajaj02',
-    featured: false,
-    category: 'Automation',
-  },
-  {
-    id: 'portfolio-dashboard',
-    title: 'Smart Portfolio Dashboard',
-    description:
-      'A personal command center for managing projects, featured content, site messaging, and future portfolio growth signals.',
-    tech_stack: ['React', 'Supabase', 'Tailwind CSS', 'Lucide Icons'],
-    thumbnail_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
-    live_link: '/admin',
-    github_link: 'https://github.com/yashbajaj02',
-    featured: true,
-    category: 'Dashboard',
-  },
+{
+  id: 'modern-book-search',
+  title: 'Modern Book Search App',
+  description:
+    'A modern book discovery platform powered by Google Books API with live search, autocomplete suggestions, responsive design, dark theme, and detailed book information.',
+  tech_stack: [
+    'HTML',
+    'CSS',
+    'JavaScript',
+    'Google Books API'
+  ],
+  thumbnail_url: 'https://i.ibb.co/CKvRCDNd/Chat-GPT-Image-May-20-2026-01-58-52-PM.png',
+  live_link: 'https://yashbajaj02.github.io/Modern-Book-Search/',
+  github_link: 'https://github.com/yashbajaj02/Modern-Book-Search',
+  featured: true,
+  category: 'Web App',
+},
 ];
 
 export const statCards = [
