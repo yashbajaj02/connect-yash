@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Project, SiteConfig } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ssolgawhrhfywusmhcmr.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://odcprfnjmfzhggifhhuh.supabase.co';
 const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_iz7tmBhscI1LNueYgus2AQ_UiyIbSSa';
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_yyTgUKp8rZ_C1dHNwWm_Eg_58WTTpR6';
 
 export const supabase = createClient<{
   public: {
