@@ -30,11 +30,11 @@ import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { ToastMessage, Toasts } from './components/Toast';
 import { useTheme } from './context/ThemeContext';
 import { adminCredentials, contact, sampleProjects } from './lib/constants';
-import { supabase, uploadProjectImage } from './lib/supabase';
 import type { Project } from './types';
 
 const formspreeEndpoint = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/xjglqwke';
 const configStorageKey = 'yash-portfolio-config';
+const projectCacheKey = 'yash-public-project-cache';
 
 type SiteSettings = {
   heroSubtitle: string;
@@ -106,6 +106,23 @@ function readStoredSettings() {
     return { ...defaultSettings, ...parsed };
   } catch {
     return defaultSettings;
+  }
+}
+
+function readProjectCache() {
+  try {
+    const cached = localStorage.getItem(projectCacheKey);
+    return cached ? (JSON.parse(cached) as Project[]) : initialProjects;
+  } catch {
+    return initialProjects;
+  }
+}
+
+function writeProjectCache(projects: Project[]) {
+  try {
+    localStorage.setItem(projectCacheKey, JSON.stringify(projects));
+  } catch {
+    // Cache is only a speed boost; ignore storage failures.
   }
 }
 
@@ -722,7 +739,7 @@ function emptyProject(): Project {
 
 export default function App() {
   const { messages, pushToast } = useToasts();
-  const [projects, setProjectsState] = useState<Project[]>(initialProjects);
+  const [projects, setProjectsState] = useState<Project[]>(readProjectCache);
   const [settings, setSettingsState] = useState<SiteSettings>(readStoredSettings);
 
   const setSettings = (nextSettings: SiteSettings) => {
@@ -736,6 +753,7 @@ export default function App() {
 
   useEffect(() => {
     async function loadProjects() {
+      const { supabase } = await import('./lib/supabase');
       const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
       if (error) {
         pushToast('Supabase projects table not ready. Using local sample projects.', 'error');
@@ -743,6 +761,7 @@ export default function App() {
       }
       if (data && data.length > 0) {
         setProjectsState(data);
+        writeProjectCache(data);
       }
     }
 
@@ -750,6 +769,7 @@ export default function App() {
   }, []);
 
   async function saveProjectToSupabase(project: Project, imageFile?: File) {
+    const { supabase, uploadProjectImage } = await import('./lib/supabase');
     const thumbnailUrl = imageFile ? await uploadProjectImage(imageFile) : project.thumbnail_url;
     const payload = {
       title: project.title,
@@ -781,14 +801,20 @@ export default function App() {
     setProjectsState((current) =>
       isUpdate ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current],
     );
+    writeProjectCache(isUpdate ? projects.map((item) => (item.id === data.id ? data : item)) : [data, ...projects]);
   }
 
   async function deleteProjectFromSupabase(projectId: string) {
+    const { supabase } = await import('./lib/supabase');
     const { error } = await supabase.from('projects').delete().eq('id', projectId);
     if (error) {
       throw new Error(`Supabase delete failed: ${error.message}`);
     }
-    setProjectsState((current) => current.filter((project) => project.id !== projectId));
+    setProjectsState((current) => {
+      const nextProjects = current.filter((project) => project.id !== projectId);
+      writeProjectCache(nextProjects);
+      return nextProjects;
+    });
   }
 
   const featuredProjects = useMemo(() => {
