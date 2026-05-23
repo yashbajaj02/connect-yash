@@ -12,13 +12,19 @@ export const supabase = createClient<{
         Row: Project;
         Insert: Omit<Project, 'id'> & { id?: string };
         Update: Partial<Project>;
+        Relationships: [];
       };
       site_config: {
         Row: SiteConfig;
         Insert: Omit<SiteConfig, 'id'> & { id?: string };
         Update: Partial<SiteConfig>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }>(supabaseUrl, supabaseAnonKey);
 

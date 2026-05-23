@@ -30,10 +30,10 @@ import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { ToastMessage, Toasts } from './components/Toast';
 import { useTheme } from './context/ThemeContext';
 import { adminCredentials, contact, sampleProjects } from './lib/constants';
+import { supabase, uploadProjectImage } from './lib/supabase';
 import type { Project } from './types';
 
 const formspreeEndpoint = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/xjglqwke';
-const projectStorageKey = 'yash-portfolio-projects';
 const configStorageKey = 'yash-portfolio-config';
 
 type SiteSettings = {
@@ -97,15 +97,6 @@ function useToasts() {
   };
 
   return { messages, pushToast };
-}
-
-function readStoredProjects() {
-  try {
-    const stored = localStorage.getItem(projectStorageKey);
-    return stored ? (JSON.parse(stored) as Project[]) : initialProjects;
-  } catch {
-    return initialProjects;
-  }
 }
 
 function readStoredSettings() {
@@ -433,13 +424,15 @@ function Contact({ settings, pushToast }: { settings: SiteSettings; pushToast: (
 
 function Admin({
   projects,
-  setProjects,
+  onSaveProject,
+  onDeleteProject,
   settings,
   setSettings,
   pushToast,
 }: {
   projects: Project[];
-  setProjects: (projects: Project[]) => void;
+  onSaveProject: (project: Project, imageFile?: File) => Promise<void>;
+  onDeleteProject: (projectId: string) => Promise<void>;
   settings: SiteSettings;
   setSettings: (settings: SiteSettings) => void;
   pushToast: (text: string, tone?: ToastMessage['tone']) => void;
@@ -471,7 +464,8 @@ function Admin({
     const form = new FormData(event.currentTarget);
     const imageFile = form.get('thumbnail_file');
     const existingImage = uploadPreview || String(form.get('thumbnail_existing') || '');
-    const uploadedImage = imageFile instanceof File && imageFile.size > 0 ? await fileToDataUrl(imageFile) : existingImage;
+    const hasNewImage = imageFile instanceof File && imageFile.size > 0;
+    const uploadedImage = hasNewImage ? uploadPreview : existingImage;
     if (!uploadedImage) {
       pushToast('Please upload a project image.', 'error');
       return;
@@ -489,12 +483,13 @@ function Admin({
     };
 
     const isExistingProject = Boolean(editing?.id);
-    const nextProjects = isExistingProject
-      ? projects.map((project) => (project.id === nextProject.id ? nextProject : project))
-      : [nextProject, ...projects];
-    setProjects(nextProjects);
-    setEditing(null);
-    pushToast(isExistingProject ? 'Project updated.' : 'Project added.', 'success');
+    try {
+      await onSaveProject(nextProject, hasNewImage ? imageFile : undefined);
+      setEditing(null);
+      pushToast(isExistingProject ? 'Project updated for everyone.' : 'Project added for everyone.', 'success');
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : 'Project could not be saved to Supabase.', 'error');
+    }
   }
 
   function saveSettings(event: FormEvent<HTMLFormElement>) {
@@ -656,9 +651,13 @@ function Admin({
                     <Edit3 className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      setProjects(projects.filter((item) => item.id !== project.id));
-                      pushToast('Project deleted.', 'success');
+                    onClick={async () => {
+                      try {
+                        await onDeleteProject(project.id);
+                        pushToast('Project deleted for everyone.', 'success');
+                      } catch (error) {
+                        pushToast(error instanceof Error ? error.message : 'Project could not be deleted.', 'error');
+                      }
                     }}
                     aria-label="Delete project"
                   >
@@ -723,17 +722,8 @@ function emptyProject(): Project {
 
 export default function App() {
   const { messages, pushToast } = useToasts();
-  const [projects, setProjectsState] = useState<Project[]>(readStoredProjects);
+  const [projects, setProjectsState] = useState<Project[]>(initialProjects);
   const [settings, setSettingsState] = useState<SiteSettings>(readStoredSettings);
-
-  const setProjects = (nextProjects: Project[]) => {
-    setProjectsState(nextProjects);
-    try {
-      localStorage.setItem(projectStorageKey, JSON.stringify(nextProjects));
-    } catch {
-      pushToast('Project saved for this session, but the image is too large for browser storage.', 'error');
-    }
-  };
 
   const setSettings = (nextSettings: SiteSettings) => {
     setSettingsState(nextSettings);
@@ -743,6 +733,63 @@ export default function App() {
   useEffect(() => {
     document.body.classList.remove('light-surface');
   }, []);
+
+  useEffect(() => {
+    async function loadProjects() {
+      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      if (error) {
+        pushToast('Supabase projects table not ready. Using local sample projects.', 'error');
+        return;
+      }
+      if (data && data.length > 0) {
+        setProjectsState(data);
+      }
+    }
+
+    void loadProjects();
+  }, []);
+
+  async function saveProjectToSupabase(project: Project, imageFile?: File) {
+    const thumbnailUrl = imageFile ? await uploadProjectImage(imageFile) : project.thumbnail_url;
+    const payload = {
+      title: project.title,
+      description: project.description,
+      tech_stack: project.tech_stack,
+      thumbnail_url: thumbnailUrl,
+      live_link: project.live_link,
+      github_link: project.github_link,
+      featured: project.featured,
+      category: project.category,
+    };
+
+    const isSupabaseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      project.id,
+    );
+    const isUpdate = isSupabaseId && projects.some((item) => item.id === project.id);
+    const query = isUpdate
+      ? supabase.from('projects').update(payload).eq('id', project.id).select().single()
+      : supabase.from('projects').insert(payload).select().single();
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`Supabase save failed: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error('Supabase save failed: no project returned.');
+    }
+
+    setProjectsState((current) =>
+      isUpdate ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current],
+    );
+  }
+
+  async function deleteProjectFromSupabase(projectId: string) {
+    const { error } = await supabase.from('projects').delete().eq('id', projectId);
+    if (error) {
+      throw new Error(`Supabase delete failed: ${error.message}`);
+    }
+    setProjectsState((current) => current.filter((project) => project.id !== projectId));
+  }
 
   const featuredProjects = useMemo(() => {
     const featured = projects.filter((project) => project.featured);
@@ -761,7 +808,8 @@ export default function App() {
           element={
             <Admin
               projects={projects}
-              setProjects={setProjects}
+              onSaveProject={saveProjectToSupabase}
+              onDeleteProject={deleteProjectFromSupabase}
               settings={settings}
               setSettings={setSettings}
               pushToast={pushToast}
