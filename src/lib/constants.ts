@@ -74,21 +74,15 @@ export const experience = [
 export const sampleProjects: Project[] = [
 {
   id: 'modern-book-search',
-  title: 'Modern Book Search App',
-  description:
-    'A modern book discovery platform powered by Google Books API with live search, autocomplete suggestions, responsive design, dark theme, and detailed book information.',
-  tech_stack: [
-    'HTML',
-    'CSS',
-    'JavaScript',
-    'Google Books API'
-  ],
-  thumbnail_url: 'https://i.ibb.co/CKvRCDNd/Chat-GPT-Image-May-20-2026-01-58-52-PM.png',
+  title: 'Modern-Book-Search',
+  description: 'Modern responsive book search web app with live suggestions, Google Books API integration, premium dark UI, and interactive search.',
+  tech_stack: ['React', 'TypeScript', 'Tailwind CSS', 'Google Books API'],
+  thumbnail_url: '/book-search.png',
   live_link: 'https://yashbajaj02.github.io/Modern-Book-Search/',
   github_link: 'https://github.com/yashbajaj02/Modern-Book-Search',
   featured: true,
   category: 'Web App',
-},
+}
 ];
 
 export const statCards = [
