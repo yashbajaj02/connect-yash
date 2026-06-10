@@ -183,7 +183,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
     ['Home', '/'],
     ['Projects', '/projects'],
     ['Contact', '/contact'],
-    ['Admin', '/admin'],
   ];
 
   return (
@@ -851,7 +850,6 @@ export default function App() {
           <a href={settings.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="transition hover:text-blue-400"><Linkedin className="h-4 w-4" /></a>
           <a href={settings.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="transition hover:text-blue-400"><Youtube className="h-4 w-4" /></a>
         </span>
-        <Link to="/admin" className="transition hover:text-blue-400">Admin</Link>
       </footer>
     </AppShell>
   );
