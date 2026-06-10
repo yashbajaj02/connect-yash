@@ -190,7 +190,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 -z-10 overflow-hidden bg-[radial-gradient(circle_at_85%_0%,rgba(32,66,120,0.34),transparent_34%),radial-gradient(circle_at_10%_100%,rgba(12,84,88,0.28),transparent_30%),radial-gradient(circle_at_58%_70%,rgba(110,98,53,0.20),transparent_26%)] light:bg-[radial-gradient(circle_at_85%_0%,rgba(59,130,246,0.20),transparent_34%),radial-gradient(circle_at_10%_100%,rgba(20,184,166,0.18),transparent_30%),radial-gradient(circle_at_58%_70%,rgba(168,85,247,0.12),transparent_26%)]" />
       <header className="sticky top-3 z-40 px-4">
         <nav className="nav-shell mx-auto flex max-w-[1050px] items-center justify-between rounded-lg px-5 py-3">
-          <Link to="/" className="text-base font-extrabold tracking-tight text-white light:text-slate-950">
+          <Link to="/" className="brand-logo text-base font-extrabold tracking-tight">
             Yash Bajaj
           </Link>
           <div className="flex items-center gap-1 sm:gap-3">
@@ -246,10 +246,10 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
           </h1>
           <p className="mt-7 max-w-3xl text-xl leading-9 text-slate-400">{settings.heroSubtitle}</p>
           <div className="mt-9 flex flex-wrap gap-4">
-            <Link to="/projects" className="inline-flex items-center gap-3 rounded-lg bg-white px-7 py-4 font-bold text-slate-950 transition hover:-translate-y-0.5">
+            <Link to="/projects" className="premium-button inline-flex items-center gap-3 rounded-lg bg-white px-7 py-4 font-bold text-slate-950">
               View Projects <ArrowRight className="h-5 w-5" />
             </Link>
-            <Link to="/contact" className="inline-flex items-center gap-3 rounded-lg border border-slate-700 px-7 py-4 font-bold text-slate-300 transition hover:border-slate-500 hover:text-white">
+            <Link to="/contact" className="ghost-button inline-flex items-center gap-3 rounded-lg border border-slate-700 px-7 py-4 font-bold text-slate-300">
               Get in Touch
             </Link>
           </div>
@@ -280,7 +280,7 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
         <h2 className="text-4xl font-extrabold">Technologies</h2>
         <div className="mt-10 flex flex-wrap gap-3">
           {settings.technologies.map((tech) => (
-            <span key={tech} className="rounded-lg border border-slate-800 bg-slate-900/70 px-6 py-4 font-bold text-slate-300">
+            <span key={tech} className="tech-pill rounded-lg border border-slate-800 bg-slate-900/70 px-6 py-4 font-bold text-slate-300">
               {tech}
             </span>
           ))}
@@ -310,7 +310,7 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
       <section className="soft-card my-20 rounded-lg p-12 text-center">
         <h2 className="text-4xl font-extrabold">Let&apos;s Work Together</h2>
         <p className="mt-5 text-lg text-slate-400">Have a project in mind or want to collaborate? I&apos;d love to hear from you.</p>
-        <Link to="/contact" className="mt-10 inline-flex items-center gap-3 rounded-lg bg-white px-8 py-4 font-bold text-slate-950">
+        <Link to="/contact" className="premium-button mt-10 inline-flex items-center gap-3 rounded-lg bg-white px-8 py-4 font-bold text-slate-950">
           Get in Touch <ArrowRight className="h-5 w-5" />
         </Link>
       </section>
@@ -320,7 +320,7 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
 
 function SocialButton({ icon: Icon, label, href }: { icon: typeof Instagram; label: string; href: string }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="soft-card inline-flex items-center gap-3 rounded-lg px-6 py-4 font-bold text-slate-400 transition hover:text-white">
+    <a href={href} target="_blank" rel="noreferrer" className="social-button soft-card inline-flex items-center gap-3 rounded-lg px-6 py-4 font-bold text-slate-400">
       <Icon className="h-5 w-5" />
       {label}
     </a>
@@ -338,7 +338,7 @@ function ProjectCards({ projects }: { projects: Project[] }) {
           viewport={{ once: true }}
           className="project-card overflow-hidden rounded-lg"
         >
-          <img src={project.thumbnail_url} alt={project.title} className="h-48 w-full object-cover" />
+          <img src={project.thumbnail_url} alt={project.title} className="project-image h-48 w-full object-cover" />
           <div className="p-5">
             <div className="flex items-center gap-2">
               <h3 className="text-xl font-extrabold">{project.title}</h3>
@@ -347,12 +347,12 @@ function ProjectCards({ projects }: { projects: Project[] }) {
             <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
             <div className="mt-5 flex gap-3">
               {project.live_link ? (
-                <a href={project.live_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">
+                <a href={project.live_link} target="_blank" rel="noreferrer" className="premium-button inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">
                   <ExternalLink className="h-4 w-4" /> Live
                 </a>
               ) : null}
               {project.github_link ? (
-                <a href={project.github_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300 light:text-slate-700">
+                <a href={project.github_link} target="_blank" rel="noreferrer" className="ghost-button inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300 light:text-slate-700">
                   <Github className="h-4 w-4" /> Repo
                 </a>
               ) : null}
@@ -397,7 +397,7 @@ function Contact({ settings, pushToast }: { settings: SiteSettings; pushToast: (
       <PageTitle title="Contact" subtitle="Let's connect and build something great together." />
       <div className="mt-14 grid gap-9 lg:grid-cols-2">
         <div className="grid content-start gap-5">
-          <a href={buildWhatsAppLink(settings.whatsapp)} target="_blank" rel="noreferrer" className="soft-card flex items-center justify-between rounded-lg p-6">
+          <a href={buildWhatsAppLink(settings.whatsapp)} target="_blank" rel="noreferrer" className="contact-tile soft-card flex items-center justify-between rounded-lg p-6">
             <span className="flex items-center gap-5">
               <span className="grid h-14 w-14 place-items-center rounded-lg bg-blue-500/10 text-blue-400">
                 <MessageCircle className="h-7 w-7" />
@@ -409,7 +409,7 @@ function Contact({ settings, pushToast }: { settings: SiteSettings; pushToast: (
             </span>
             <ExternalLink className="h-5 w-5 text-slate-400" />
           </a>
-          <a href={buildEmailLink(settings.email)} className="soft-card flex items-center justify-between rounded-lg p-6">
+          <a href={buildEmailLink(settings.email)} className="contact-tile soft-card flex items-center justify-between rounded-lg p-6">
             <span className="flex items-center gap-5">
               <span className="grid h-14 w-14 place-items-center rounded-lg bg-blue-500/10 text-blue-400">
                 <Mail className="h-7 w-7" />

@@ -98,6 +98,7 @@ body.light-surface {
 
 .nav-shell {
   backdrop-filter: blur(18px);
+  transition: border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
 }
 
 .light .nav-shell,
@@ -233,4 +234,178 @@ body.light-surface {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.brand-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: transparent;
+  background: linear-gradient(90deg, #ffffff, #9bd7ff, #53f2b7, #ffffff);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 0 22px rgba(59, 130, 246, 0.24);
+  transition: transform 220ms ease, filter 220ms ease;
+  animation: brandShine 7s ease-in-out infinite;
+}
+
+.brand-logo::after {
+  position: absolute;
+  right: -14px;
+  bottom: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  content: '';
+  background: #22c55e;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.9);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.brand-logo:hover {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.34));
+}
+
+.brand-logo:hover::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.light .brand-logo {
+  background: linear-gradient(90deg, #0f172a, #2563eb, #0f766e, #0f172a);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+
+.nav-shell .brand-logo,
+.light .nav-shell .brand-logo {
+  color: transparent;
+}
+
+.premium-button,
+.ghost-button,
+.social-button,
+.contact-tile,
+.tech-pill,
+.soft-card,
+.project-card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+
+.premium-button {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 14px 32px rgba(255, 255, 255, 0.07);
+}
+
+.premium-button::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.42), transparent 70%);
+  transform: translateX(-140%);
+  transition: transform 650ms ease;
+}
+
+.premium-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 48px rgba(59, 130, 246, 0.28);
+}
+
+.premium-button:hover::before {
+  transform: translateX(140%);
+}
+
+.ghost-button:hover {
+  color: white;
+  border-color: rgba(96, 165, 250, 0.72);
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.16);
+  transform: translateY(-2px);
+}
+
+.soft-card:hover,
+.project-card:hover {
+  border-color: rgba(96, 165, 250, 0.42);
+  box-shadow: 0 26px 80px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(96, 165, 250, 0.12) inset;
+  transform: translateY(-4px);
+}
+
+.social-button:hover,
+.contact-tile:hover,
+.tech-pill:hover {
+  color: white;
+  border-color: rgba(96, 165, 250, 0.52);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(20, 184, 166, 0.12));
+  box-shadow: 0 18px 42px rgba(37, 99, 235, 0.16);
+  transform: translateY(-3px);
+}
+
+.project-card {
+  isolation: isolate;
+}
+
+.project-image {
+  transition: transform 520ms ease, filter 520ms ease;
+}
+
+.project-card:hover .project-image {
+  transform: scale(1.055);
+  filter: saturate(1.14) contrast(1.05);
+}
+
+.light .premium-button:hover {
+  box-shadow: 0 22px 48px rgba(20, 184, 166, 0.28);
+}
+
+.light .ghost-button:hover,
+.light .social-button:hover,
+.light .contact-tile:hover,
+.light .tech-pill:hover {
+  color: rgb(29 78 216);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(20, 184, 166, 0.10));
+  border-color: rgba(37, 99, 235, 0.34);
+}
+
+.light .soft-card:hover,
+.light .project-card:hover {
+  box-shadow: 0 28px 82px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(20, 184, 166, 0.12) inset;
+}
+
+@keyframes brandShine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo,
+  .premium-button,
+  .ghost-button,
+  .social-button,
+  .contact-tile,
+  .tech-pill,
+  .soft-card,
+  .project-card,
+  .project-image {
+    animation: none;
+    transition: none;
+  }
 }
