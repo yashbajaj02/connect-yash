@@ -24,23 +24,6 @@ A premium developer portfolio built with **React, TypeScript, Supabase, Cloudina
 
 ---
 
-# 📸 Preview
-
-> Add your homepage screenshot here.
-
-```text
-assets/
-└── preview.png
-```
-
-```md
-<p align="center">
-<img src="./assets/preview.png" width="100%">
-</p>
-```
-
----
-
 # ✨ Features
 
 - 🎨 Modern & Premium UI
