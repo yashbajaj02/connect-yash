@@ -7,6 +7,7 @@ create table if not exists public.projects (
   live_link text default '',
   github_link text default '',
   featured boolean not null default false,
+  display_order integer not null default 0,
   category text not null default 'Web App',
   created_at timestamptz not null default now()
 );
@@ -34,27 +35,4 @@ create policy "Anyone can delete projects"
 on public.projects for delete
 using (true);
 
-insert into storage.buckets (id, name, public)
-values ('portfolio-assets', 'portfolio-assets', true)
-on conflict (id) do update set public = true;
 
-drop policy if exists "Anyone can view portfolio assets" on storage.objects;
-create policy "Anyone can view portfolio assets"
-on storage.objects for select
-using (bucket_id = 'portfolio-assets');
-
-drop policy if exists "Anyone can upload portfolio assets" on storage.objects;
-create policy "Anyone can upload portfolio assets"
-on storage.objects for insert
-with check (bucket_id = 'portfolio-assets');
-
-drop policy if exists "Anyone can update portfolio assets" on storage.objects;
-create policy "Anyone can update portfolio assets"
-on storage.objects for update
-using (bucket_id = 'portfolio-assets')
-with check (bucket_id = 'portfolio-assets');
-
-drop policy if exists "Anyone can delete portfolio assets" on storage.objects;
-create policy "Anyone can delete portfolio assets"
-on storage.objects for delete
-using (bucket_id = 'portfolio-assets');

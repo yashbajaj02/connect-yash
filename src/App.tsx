@@ -1,13 +1,16 @@
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   Code,
   Database,
   Edit3,
   ExternalLink,
   Github,
   Globe,
+  GripVertical,
   Instagram,
   Linkedin,
   Lock,
@@ -16,6 +19,7 @@ import {
   Moon,
   Palette,
   Plus,
+  RefreshCw,
   Save,
   Send,
   Smartphone,
@@ -25,16 +29,23 @@ import {
   Youtube,
   Zap,
 } from 'lucide-react';
+import { moveProjectUp, moveProjectDown, reorderProjects, normalizeDisplayOrder } from './lib/projectHelpers';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { ToastMessage, Toasts } from './components/Toast';
 import { useTheme } from './context/ThemeContext';
 import { adminCredentials, contact, sampleProjects } from './lib/constants';
+import {
+  deleteImage,
+  generateThumbnail,
+  optimizeImage,
+  updateImage,
+  validateImageFile,
+} from './services/cloudinary';
 import type { Project } from './types';
 
 const formspreeEndpoint = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/xjglqwke';
 const configStorageKey = 'yash-portfolio-config';
-const projectCacheKey = 'yash-public-project-cache';
 
 type SiteSettings = {
   heroSubtitle: string;
@@ -47,12 +58,6 @@ type SiteSettings = {
   youtube: string;
   whatsapp: string;
   email: string;
-};
-
-type ConnectLink = {
-  label: string;
-  href: string;
-  subtitle: string;
 };
 
 const defaultSettings: SiteSettings = {
@@ -72,7 +77,7 @@ const defaultSettings: SiteSettings = {
 
 const initialProjects: Project[] = sampleProjects
   .filter((project) => ['book-search', 'stress-analysis'].includes(project.id))
-  .map((project) => ({
+  .map((project, index) => ({
     ...project,
     title: project.id === 'book-search' ? 'Modern-Book-Search' : 'AI Stress Analysis System',
     thumbnail_url:
@@ -83,6 +88,7 @@ const initialProjects: Project[] = sampleProjects
       project.id === 'book-search'
         ? 'Modern responsive book search web app with live suggestions, Google Books API integration, premium dark UI, and interactive search experience.'
         : 'AI-driven lifestyle stress analysis system using statistics, visualization, and rule-based intelligence to classify stress levels and provide productivity insights.',
+    display_order: index + 1,
   }));
 
 const skillIcons = [Code, Sparkles, Globe, Zap, Palette, Database, Smartphone, Mail];
@@ -109,55 +115,11 @@ function readStoredSettings() {
   }
 }
 
-function readProjectCache() {
-  try {
-    const cached = localStorage.getItem(projectCacheKey);
-    return cached ? (JSON.parse(cached) as Project[]) : initialProjects;
-  } catch {
-    return initialProjects;
-  }
-}
-
-function writeProjectCache(projects: Project[]) {
-  try {
-    localStorage.setItem(projectCacheKey, JSON.stringify(projects));
-  } catch {
-    // Cache is only a speed boost; ignore storage failures.
-  }
-}
-
 function linesToList(value: FormDataEntryValue | null) {
   return String(value || '')
     .split(/\r?\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const image = new Image();
-      image.onload = () => {
-        const maxSide = 1100;
-        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(image.width * scale);
-        canvas.height = Math.round(image.height * scale);
-        const context = canvas.getContext('2d');
-        if (!context) {
-          resolve(String(reader.result));
-          return;
-        }
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      image.onerror = () => resolve(String(reader.result));
-      image.src = String(reader.result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 function buildWhatsAppLink(rawPhoneOrUrl: string) {
@@ -208,9 +170,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               </NavLink>
             ))}
             <button
-      type="button"
-      aria-label="Toggle theme"
-      onClick={toggleTheme}
+              type="button"
+              aria-label="Toggle theme"
+              onClick={toggleTheme}
               className="theme-button ml-1 grid h-9 w-9 place-items-center rounded-lg transition"
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -267,10 +229,10 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
           {settings.skills.map((skill, index) => {
             const SkillIcon = skillIcons[index % skillIcons.length];
             return (
-            <div key={skill} className="soft-card grid min-h-32 place-items-center rounded-lg p-6 text-center">
-              <SkillIcon className="mb-5 h-9 w-9 text-blue-400" />
-              <h3 className="font-bold text-slate-300">{skill}</h3>
-            </div>
+              <div key={skill} className="soft-card grid min-h-32 place-items-center rounded-lg p-6 text-center">
+                <SkillIcon className="mb-5 h-9 w-9 text-blue-400" />
+                <h3 className="font-bold text-slate-300">{skill}</h3>
+              </div>
             );
           })}
         </div>
@@ -329,37 +291,46 @@ function SocialButton({ icon: Icon, label, href }: { icon: typeof Instagram; lab
 
 function ProjectCards({ projects }: { projects: Project[] }) {
   return (
-    <div className="grid max-w-[700px] gap-5 md:grid-cols-2">
-      {projects.map((project) => (
-        <motion.article
-          key={project.id}
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="project-card overflow-hidden rounded-lg"
-        >
-          <img src={project.thumbnail_url} alt={project.title} className="project-image h-48 w-full object-cover" />
-          <div className="p-5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-extrabold">{project.title}</h3>
-              {project.featured ? <span className="text-yellow-400">*</span> : null}
+    <div className="grid w-full gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      {projects.map((project) => {
+        const optimizedImage = generateThumbnail(project.thumbnail_url);
+        return (
+          <motion.article
+            key={project.id}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="project-card overflow-hidden rounded-lg"
+          >
+            <img
+              src={optimizedImage}
+              alt={project.title}
+              loading="lazy"
+              decoding="async"
+              className="project-image h-48 w-full object-cover"
+            />
+            <div className="p-5">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-extrabold">{project.title}</h3>
+                {project.featured ? <span className="text-yellow-400">*</span> : null}
+              </div>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
+              <div className="mt-5 flex gap-3">
+                {project.live_link ? (
+                  <a href={project.live_link} target="_blank" rel="noreferrer" className="premium-button inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">
+                    <ExternalLink className="h-4 w-4" /> Live
+                  </a>
+                ) : null}
+                {project.github_link ? (
+                  <a href={project.github_link} target="_blank" rel="noreferrer" className="ghost-button inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300 light:text-slate-700">
+                    <Github className="h-4 w-4" /> Repo
+                  </a>
+                ) : null}
+              </div>
             </div>
-            <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
-            <div className="mt-5 flex gap-3">
-              {project.live_link ? (
-                <a href={project.live_link} target="_blank" rel="noreferrer" className="premium-button inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">
-                  <ExternalLink className="h-4 w-4" /> Live
-                </a>
-              ) : null}
-              {project.github_link ? (
-                <a href={project.github_link} target="_blank" rel="noreferrer" className="ghost-button inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300 light:text-slate-700">
-                  <Github className="h-4 w-4" /> Repo
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </motion.article>
-      ))}
+          </motion.article>
+        );
+      })}
     </div>
   );
 }
@@ -442,13 +413,15 @@ function Admin({
   projects,
   onSaveProject,
   onDeleteProject,
+  onReorderProjects,
   settings,
   setSettings,
   pushToast,
 }: {
   projects: Project[];
-  onSaveProject: (project: Project, imageFile?: File) => Promise<void>;
+  onSaveProject: (project: Project) => Promise<void>;
   onDeleteProject: (projectId: string) => Promise<void>;
+  onReorderProjects: (projects: Project[]) => Promise<void>;
   settings: SiteSettings;
   setSettings: (settings: SiteSettings) => void;
   pushToast: (text: string, tone?: ToastMessage['tone']) => void;
@@ -457,10 +430,15 @@ function Admin({
   const [tab, setTab] = useState<'projects' | 'settings'>('projects');
   const [editing, setEditing] = useState<Project | null>(null);
   const [uploadPreview, setUploadPreview] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setUploadPreview(editing?.thumbnail_url || '');
+    setSelectedFile(null);
+    setUploadProgress(null);
   }, [editing]);
 
   function login(event: FormEvent<HTMLFormElement>) {
@@ -478,19 +456,37 @@ function Admin({
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const imageFile = form.get('thumbnail_file');
-    const existingImage = uploadPreview || String(form.get('thumbnail_existing') || '');
-    const hasNewImage = imageFile instanceof File && imageFile.size > 0;
-    const uploadedImage = hasNewImage ? uploadPreview : existingImage;
-    if (!uploadedImage) {
+    const existingImage = String(form.get('thumbnail_existing') || '');
+    let finalImageUrl = uploadPreview || existingImage;
+
+    if (selectedFile) {
+      try {
+        setIsSaving(true);
+        setUploadProgress(0);
+        pushToast('Uploading image to Cloudinary CDN...', 'info');
+        // Uploads new image first; deletes old Cloudinary image only after upload succeeds
+        finalImageUrl = await updateImage(selectedFile, existingImage, (progress) => {
+          setUploadProgress(progress);
+        });
+        pushToast('Image updated on Cloudinary CDN.', 'success');
+      } catch (error) {
+        setIsSaving(false);
+        setUploadProgress(null);
+        pushToast(error instanceof Error ? error.message : 'Cloudinary upload failed.', 'error');
+        return;
+      }
+    }
+
+    if (!finalImageUrl) {
       pushToast('Please upload a project image.', 'error');
       return;
     }
+
     const nextProject: Project = {
       id: editing?.id || crypto.randomUUID(),
       title: String(form.get('title') || ''),
       description: String(form.get('description') || ''),
-      thumbnail_url: uploadedImage,
+      thumbnail_url: finalImageUrl,
       live_link: String(form.get('live_link') || ''),
       github_link: String(form.get('github_link') || ''),
       tech_stack: linesToList(form.get('tech_stack')),
@@ -500,11 +496,17 @@ function Admin({
 
     const isExistingProject = Boolean(editing?.id);
     try {
-      await onSaveProject(nextProject, hasNewImage ? imageFile : undefined);
+      setIsSaving(true);
+      await onSaveProject(nextProject);
       setEditing(null);
+      setSelectedFile(null);
+      setUploadProgress(null);
       pushToast(isExistingProject ? 'Project updated for everyone.' : 'Project added for everyone.', 'success');
     } catch (error) {
       pushToast(error instanceof Error ? error.message : 'Project could not be saved to Supabase.', 'error');
+    } finally {
+      setIsSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -584,43 +586,62 @@ function Admin({
         <div>
           <div className="mb-6 flex items-center justify-between">
             <p className="text-slate-400">{projects.length} projects</p>
-            <button onClick={() => setEditing(emptyProject())} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-slate-950">
-              <Plus className="h-4 w-4" /> Add Project
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  const normalized = normalizeDisplayOrder(projects);
+                  onReorderProjects(normalized).catch(() => {});
+                }} 
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-5 py-3 text-sm font-bold text-slate-300 hover:bg-slate-700 transition"
+              >
+                <RefreshCw className="h-4 w-4" /> Reset Order
+              </button>
+              <button onClick={() => setEditing(emptyProject())} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-slate-950 transition">
+                <Plus className="h-4 w-4" /> Add Project
+              </button>
+            </div>
           </div>
 
           {editing ? (
             <form onSubmit={saveProject} className="soft-card mb-8 rounded-lg p-6">
               <div className="grid gap-4 md:grid-cols-2">
-                <input name="title" defaultValue={editing.title} placeholder="Project title" className="form-input" />
+                <input name="title" defaultValue={editing.title} placeholder="Project title" required className="form-input" />
                 <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-3 light:bg-white/70">
-                  <input name="thumbnail_existing" type="hidden" value={uploadPreview} />
+                  <input name="thumbnail_existing" type="hidden" value={editing.thumbnail_url || ''} />
                   <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                     <div className="grid h-24 place-items-center overflow-hidden rounded-md border border-slate-700 bg-slate-950/60 light:border-blue-200 light:bg-blue-50">
                       {uploadPreview ? (
-                        <img src={uploadPreview} alt="Project preview" className="h-full w-full object-cover" />
+                        <img src={optimizeImage(uploadPreview)} alt="Project preview" className="h-full w-full object-cover" />
                       ) : (
                         <span className="px-3 text-center text-xs font-bold text-slate-400">No image</span>
                       )}
                     </div>
                     <label className="flex cursor-pointer flex-col justify-center rounded-md px-3 py-2 text-sm font-bold text-blue-300 transition hover:bg-blue-500/10 light:text-blue-700">
                       {uploadPreview ? 'Change picture' : 'Upload project image'}
-                      <span className="mt-1 text-xs font-medium text-slate-400">PNG, JPG, or WebP only</span>
+                      <span className="mt-1 text-xs font-medium text-slate-400">PNG, JPG, WebP, GIF, or AVIF (Max 10MB)</span>
                       <input
                         name="thumbnail_file"
                         type="file"
                         accept="image/*"
                         className="sr-only"
-                        onChange={async (event) => {
+                        onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
                           if (file) {
-                            setUploadPreview(await fileToDataUrl(file));
+                            const validation = validateImageFile(file);
+                            if (!validation.valid) {
+                              pushToast(validation.error || 'Invalid file.', 'error');
+                              event.currentTarget.value = '';
+                              return;
+                            }
+                            setSelectedFile(file);
+                            setUploadPreview(URL.createObjectURL(file));
                           }
                         }}
                       />
                     </label>
                   </div>
                 </div>
+
                 <input name="live_link" defaultValue={editing.live_link} placeholder="Live link" className="form-input" />
                 <input name="github_link" defaultValue={editing.github_link} placeholder="Repository link" className="form-input" />
                 <textarea
@@ -632,57 +653,107 @@ function Admin({
                 />
                 <textarea name="description" defaultValue={editing.description} placeholder="Description" rows={3} className="form-input resize-none md:col-span-2" />
               </div>
+
+              {uploadProgress !== null && (
+                <div className="mt-4 rounded-lg bg-slate-900/80 p-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-blue-400">
+                    <span>Uploading image to Cloudinary CDN...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-400 to-emerald-400 transition-all duration-150"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <label className="mt-5 flex items-center gap-3 text-sm font-bold text-slate-300">
                 <input name="featured" type="checkbox" defaultChecked={editing.featured} /> Featured project
               </label>
+
               <div className="mt-6 flex gap-3">
-                <button className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-slate-950">
-                  <Save className="h-4 w-4" /> Save Project
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-slate-950 disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" /> {isSaving ? 'Saving...' : 'Save Project'}
                 </button>
-                <button type="button" onClick={() => setEditing(null)} className="rounded-lg border border-slate-700 px-5 py-3 text-sm font-bold text-slate-300">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(null);
+                    setSelectedFile(null);
+                    setUploadProgress(null);
+                  }}
+                  className="rounded-lg border border-slate-700 px-5 py-3 text-sm font-bold text-slate-300"
+                >
                   Cancel
                 </button>
               </div>
             </form>
           ) : null}
 
-          <div className="grid gap-4">
+          <Reorder.Group axis="y" values={projects} onReorder={(reordered) => {
+            const normalized = normalizeDisplayOrder(reordered);
+            onReorderProjects(normalized).catch(() => {});
+          }} className="grid gap-4">
             {projects.map((project) => (
-              <div key={project.id} className="soft-card grid items-center gap-4 rounded-lg p-4 md:grid-cols-[76px_1fr_auto]">
-                <img src={project.thumbnail_url} alt="" className="h-14 w-20 rounded-md object-cover" />
+              <Reorder.Item value={project} key={project.id} id={project.id} className="soft-card grid items-center gap-4 rounded-lg p-4 md:grid-cols-[auto_76px_1fr_auto]">
+                <div className="flex cursor-grab flex-col items-center gap-2 text-slate-500 hover:text-slate-300 active:cursor-grabbing">
+                  <GripVertical className="h-5 w-5" />
+                  <span className="text-xs font-bold text-slate-600">{project.display_order}</span>
+                </div>
+                <img src={generateThumbnail(project.thumbnail_url, 160, 112)} alt="" className="h-14 w-20 rounded-md object-cover" />
                 <div className="min-w-0">
                   <h3 className="truncate font-extrabold">
                     {project.title} {project.featured ? <span className="text-yellow-400">*</span> : null}
                   </h3>
                   <p className="truncate text-sm text-slate-400">{project.description}</p>
                 </div>
-                <div className="flex gap-3 text-slate-400">
-                  <a href={project.live_link} target="_blank" rel="noreferrer" aria-label="Open live project">
+                <div className="flex items-center gap-3 text-slate-400">
+                  <button onClick={() => {
+                    const next = moveProjectUp(projects, project.id);
+                    if (next !== projects) onReorderProjects(next).catch(() => {});
+                  }} aria-label="Move Up" className="hover:text-blue-400 transition">
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => {
+                    const next = moveProjectDown(projects, project.id);
+                    if (next !== projects) onReorderProjects(next).catch(() => {});
+                  }} aria-label="Move Down" className="hover:text-blue-400 transition">
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
+                  <div className="mx-1 h-4 w-px bg-slate-700" />
+                  <a href={project.live_link} target="_blank" rel="noreferrer" aria-label="Open live project" className="hover:text-blue-400 transition">
                     <ExternalLink className="h-4 w-4" />
                   </a>
-                  <a href={project.github_link} target="_blank" rel="noreferrer" aria-label="Open GitHub">
+                  <a href={project.github_link} target="_blank" rel="noreferrer" aria-label="Open GitHub" className="hover:text-blue-400 transition">
                     <Github className="h-4 w-4" />
                   </a>
-                  <button onClick={() => setEditing(project)} aria-label="Edit project">
+                  <button onClick={() => setEditing(project)} aria-label="Edit project" className="hover:text-blue-400 transition">
                     <Edit3 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={async () => {
                       try {
                         await onDeleteProject(project.id);
-                        pushToast('Project deleted for everyone.', 'success');
+                        pushToast('Project deleted.', 'success');
                       } catch (error) {
                         pushToast(error instanceof Error ? error.message : 'Project could not be deleted.', 'error');
                       }
                     }}
                     aria-label="Delete project"
+                    className="hover:text-red-400 transition"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
+              </Reorder.Item>
             ))}
-          </div>
+          </Reorder.Group>
         </div>
       ) : (
         <form onSubmit={saveSettings} className="grid gap-7">
@@ -733,12 +804,13 @@ function emptyProject(): Project {
     tech_stack: [],
     featured: false,
     category: 'Web App',
+    display_order: 0,
   };
 }
 
 export default function App() {
   const { messages, pushToast } = useToasts();
-  const [projects, setProjectsState] = useState<Project[]>(readProjectCache);
+  const [projects, setProjectsState] = useState<Project[]>(initialProjects);
   const [settings, setSettingsState] = useState<SiteSettings>(readStoredSettings);
 
   const setSettings = (nextSettings: SiteSettings) => {
@@ -753,38 +825,41 @@ export default function App() {
   useEffect(() => {
     async function loadProjects() {
       const { supabase } = await import('./lib/supabase');
-      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('projects').select('*').order('display_order', { ascending: true });
       if (error) {
-        pushToast('Supabase projects table not ready. Using local sample projects.', 'error');
+        pushToast('Supabase projects table not ready. Using default sample projects.', 'error');
         return;
       }
       if (data && data.length > 0) {
         setProjectsState(data);
-        writeProjectCache(data);
       }
     }
 
     void loadProjects();
   }, []);
 
-  async function saveProjectToSupabase(project: Project, imageFile?: File) {
-    const { supabase, uploadProjectImage } = await import('./lib/supabase');
-    const thumbnailUrl = imageFile ? await uploadProjectImage(imageFile) : project.thumbnail_url;
+  async function saveProjectToSupabase(project: Project) {
+    const { supabase } = await import('./lib/supabase');
+    
+    const isSupabaseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      project.id
+    );
+    const isUpdate = isSupabaseId && projects.some((item) => item.id === project.id);
+    
+    const newDisplayOrder = Math.max(0, ...projects.map(p => p.display_order || 0)) + 1;
+
     const payload = {
       title: project.title,
       description: project.description,
       tech_stack: project.tech_stack,
-      thumbnail_url: thumbnailUrl,
+      thumbnail_url: project.thumbnail_url,
       live_link: project.live_link,
       github_link: project.github_link,
       featured: project.featured,
       category: project.category,
+      display_order: isUpdate ? project.display_order : newDisplayOrder,
     };
 
-    const isSupabaseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      project.id,
-    );
-    const isUpdate = isSupabaseId && projects.some((item) => item.id === project.id);
     const query = isUpdate
       ? supabase.from('projects').update(payload).eq('id', project.id).select().single()
       : supabase.from('projects').insert(payload).select().single();
@@ -798,28 +873,66 @@ export default function App() {
     }
 
     setProjectsState((current) =>
-      isUpdate ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current],
+      isUpdate ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current]
     );
-    writeProjectCache(isUpdate ? projects.map((item) => (item.id === data.id ? data : item)) : [data, ...projects]);
   }
 
   async function deleteProjectFromSupabase(projectId: string) {
     const { supabase } = await import('./lib/supabase');
+    const targetProject = projects.find((p) => p.id === projectId);
+
+    // Automatically remove Cloudinary asset to prevent orphaned storage
+    if (targetProject?.thumbnail_url) {
+      void deleteImage(targetProject.thumbnail_url);
+    }
+
     const { error } = await supabase.from('projects').delete().eq('id', projectId);
     if (error) {
       throw new Error(`Supabase delete failed: ${error.message}`);
     }
-    setProjectsState((current) => {
-      const nextProjects = current.filter((project) => project.id !== projectId);
-      writeProjectCache(nextProjects);
-      return nextProjects;
-    });
+    
+    const remaining = projects.filter((project) => project.id !== projectId);
+    const normalized = normalizeDisplayOrder(remaining);
+    
+    if (normalized.length > 0) {
+      const updates = normalized.map(p => ({
+        id: p.id, title: p.title, description: p.description, tech_stack: p.tech_stack, thumbnail_url: p.thumbnail_url, live_link: p.live_link, github_link: p.github_link, featured: p.featured, category: p.category, display_order: p.display_order
+      }));
+      await supabase.from('projects').upsert(updates);
+    }
+    
+    setProjectsState(normalized);
   }
 
-  const featuredProjects = useMemo(() => {
-    const featured = projects.filter((project) => project.featured);
-    return featured.length ? featured : projects;
-  }, [projects]);
+  async function saveOrderToSupabase(reorderedProjects: Project[]) {
+    const { supabase } = await import('./lib/supabase');
+    const updates = reorderedProjects.map(p => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      tech_stack: p.tech_stack,
+      thumbnail_url: p.thumbnail_url,
+      live_link: p.live_link,
+      github_link: p.github_link,
+      featured: p.featured,
+      category: p.category,
+      display_order: p.display_order
+    }));
+    
+    setProjectsState(reorderedProjects);
+
+    const { error } = await supabase.from('projects').upsert(updates);
+    if (error) {
+      setProjectsState(projects);
+      pushToast(`Failed to save order: ${error.message}`, 'error');
+    } else {
+      pushToast('Project order updated.', 'success');
+    }
+  }
+
+  // Use display_order for all lists
+  const sortedProjects = [...projects].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+  const featuredProjects = sortedProjects;
 
   return (
     <AppShell>
@@ -835,6 +948,7 @@ export default function App() {
               projects={projects}
               onSaveProject={saveProjectToSupabase}
               onDeleteProject={deleteProjectFromSupabase}
+              onReorderProjects={saveOrderToSupabase}
               settings={settings}
               setSettings={setSettings}
               pushToast={pushToast}

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Project, SiteConfig } from '../types';
+import { uploadImage as uploadToCloudinary } from '../services/cloudinary';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://odcprfnjmfzhggifhhuh.supabase.co';
 const supabaseAnonKey =
@@ -25,21 +26,16 @@ export const supabase = createClient<{
     Functions: Record<string, never>;
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
-  };
+    };
 }>(supabaseUrl, supabaseAnonKey);
 
-export async function uploadProjectImage(file: File) {
-  const extension = file.name.split('.').pop() || 'jpg';
-  const filePath = `project-thumbnails/${crypto.randomUUID()}.${extension}`;
-  const { error } = await supabase.storage.from('portfolio-assets').upload(filePath, file, {
-    cacheControl: '3600',
-    upsert: false,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  const { data } = supabase.storage.from('portfolio-assets').getPublicUrl(filePath);
-  return data.publicUrl;
+/**
+ * Uploads an image to Cloudinary and returns the optimized Cloudinary CDN URL.
+ * Replaces old Supabase Storage / Base64 upload logic while preserving function signature.
+ */
+export async function uploadProjectImage(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  return await uploadToCloudinary(file, onProgress);
 }

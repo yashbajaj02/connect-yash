@@ -8,6 +8,7 @@ export type Project = {
   github_link: string;
   featured: boolean;
   category: 'AI' | 'Web App' | 'Dashboard' | 'Automation';
+  display_order?: number;
   created_at?: string;
 };
 
