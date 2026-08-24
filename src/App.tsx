@@ -26,7 +26,6 @@ import {
   Sparkles,
   Sun,
   Trash2,
-  Youtube,
   Zap,
 } from 'lucide-react';
 import { moveProjectUp, moveProjectDown, reorderProjects, normalizeDisplayOrder } from './lib/projectHelpers';
@@ -34,7 +33,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { ToastMessage, Toasts } from './components/Toast';
 import { useTheme } from './context/ThemeContext';
-import { adminCredentials, contact, sampleProjects } from './lib/constants';
+import { contact } from './lib/constants';
 import {
   deleteImage,
   generateThumbnail,
@@ -55,7 +54,6 @@ type SiteSettings = {
   instagram: string;
   github: string;
   linkedin: string;
-  youtube: string;
   whatsapp: string;
   email: string;
 };
@@ -64,32 +62,17 @@ const defaultSettings: SiteSettings = {
   heroSubtitle:
     'AI enthusiast, creator, and developer building modern web experiences, automation systems, and creative digital projects.',
   aboutText:
-    'Passionate about creating modern websites, AI-powered tools, automation workflows, and digital experiences. I enjoy building scalable projects, experimenting with new technologies, and creating content around creativity and innovation. Alongside development, I also explore YouTube content creation, social branding, and automation-based systems.',
+    'Passionate about creating modern websites, AI-powered tools, automation workflows, and digital experiences. I enjoy building scalable projects, experimenting with new technologies, and creating content around creativity and innovation. Alongside development, I also explore social branding, and automation-based systems.',
   skills: ['Web Development', 'AI & Automation', 'Full-Stack Apps', 'Performance', 'UI/UX Design', 'Database Design', 'Responsive Design', 'Content Creation'],
   technologies: ['React', 'TypeScript', 'Node.js', 'Python', 'Supabase', 'Firebase', 'Tailwind CSS', 'Framer Motion', 'Git', 'Vercel', 'REST APIs', 'Figma'],
   instagram: 'https://www.instagram.com/yash___bajaj/',
   github: 'https://github.com/yashbajaj02',
   linkedin: 'https://www.linkedin.com/in/yashbajaj02/',
-  youtube: 'https://www.youtube.com/@LyricJunction',
   whatsapp: '918854042917',
   email: 'enquirybusiness06@gmail.com',
 };
 
-const initialProjects: Project[] = sampleProjects
-  .filter((project) => ['book-search', 'stress-analysis'].includes(project.id))
-  .map((project, index) => ({
-    ...project,
-    title: project.id === 'book-search' ? 'Modern-Book-Search' : 'AI Stress Analysis System',
-    thumbnail_url:
-      project.id === 'book-search'
-        ? 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1000&q=80'
-        : 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=1000&q=80',
-    description:
-      project.id === 'book-search'
-        ? 'Modern responsive book search web app with live suggestions, Google Books API integration, premium dark UI, and interactive search experience.'
-        : 'AI-driven lifestyle stress analysis system using statistics, visualization, and rule-based intelligence to classify stress levels and provide productivity insights.',
-    display_order: index + 1,
-  }));
+import { projects as initialProjects } from './data/projects';
 
 const skillIcons = [Code, Sparkles, Globe, Zap, Palette, Database, Smartphone, Mail];
 
@@ -265,7 +248,6 @@ function Home({ settings, projects }: { settings: SiteSettings; projects: Projec
           <SocialButton icon={Instagram} label="Instagram" href={settings.instagram} />
           <SocialButton icon={Github} label="GitHub" href={settings.github} />
           <SocialButton icon={Linkedin} label="LinkedIn" href={settings.linkedin} />
-          <SocialButton icon={Youtube} label="YouTube" href={settings.youtube} />
         </div>
       </section>
 
@@ -441,16 +423,28 @@ function Admin({
     setUploadProgress(null);
   }, [editing]);
 
-  function login(event: FormEvent<HTMLFormElement>) {
+  async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    if (formData.get('email') === adminCredentials.email && formData.get('password') === adminCredentials.password) {
-      sessionStorage.setItem('yash-admin', 'true');
-      setLoggedIn(true);
-      pushToast('Signed in.', 'success');
-      return;
+    const pwd = String(formData.get('password') || '');
+    
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      
+      if (res.ok) {
+        sessionStorage.setItem('yash-admin', 'true');
+        setLoggedIn(true);
+        pushToast('Signed in.', 'success');
+      } else {
+        pushToast('Wrong password.', 'error');
+      }
+    } catch (error) {
+      pushToast('Authentication failed due to network error.', 'error');
     }
-    pushToast('Wrong email or password.', 'error');
   }
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
@@ -501,9 +495,9 @@ function Admin({
       setEditing(null);
       setSelectedFile(null);
       setUploadProgress(null);
-      pushToast(isExistingProject ? 'Project updated for everyone.' : 'Project added for everyone.', 'success');
+      pushToast(isExistingProject ? 'Project updated locally (edit src/data/projects.ts to persist).' : 'Project added locally (edit src/data/projects.ts to persist).', 'success');
     } catch (error) {
-      pushToast(error instanceof Error ? error.message : 'Project could not be saved to Supabase.', 'error');
+      pushToast(error instanceof Error ? error.message : 'Project could not be saved.', 'error');
     } finally {
       setIsSaving(false);
       setUploadProgress(null);
@@ -521,7 +515,6 @@ function Admin({
       instagram: String(form.get('instagram') || ''),
       github: String(form.get('github') || ''),
       linkedin: String(form.get('linkedin') || ''),
-      youtube: String(form.get('youtube') || ''),
       whatsapp: String(form.get('whatsapp') || ''),
       email: String(form.get('email') || ''),
     };
@@ -532,16 +525,14 @@ function Admin({
   if (!loggedIn) {
     return (
       <div className="grid min-h-[620px] place-items-center">
-        <form onSubmit={login} className="soft-card w-full max-w-md rounded-lg p-9">
+        <form onSubmit={(e) => void login(e)} className="soft-card w-full max-w-md rounded-lg p-9">
           <div className="mx-auto mb-8 grid h-16 w-16 place-items-center rounded-lg bg-blue-500/10 text-blue-400">
             <Lock className="h-8 w-8" />
           </div>
           <h1 className="text-center text-3xl font-extrabold">Admin Login</h1>
           <p className="mt-3 text-center text-slate-400">Sign in to manage your portfolio</p>
-          <label className="mb-3 mt-10 block text-sm font-bold text-slate-300">Email</label>
-          <input name="email" type="email" placeholder="admin@email.com" className="form-input mb-6" />
-          <label className="mb-3 block text-sm font-bold text-slate-300">Password</label>
-          <input name="password" type="password" placeholder="Enter password" className="form-input mb-7" />
+          <label className="mb-3 mt-10 block text-sm font-bold text-slate-300">Password</label>
+          <input name="password" type="password" placeholder="Enter password" required className="form-input mb-7" />
           <button className="inline-flex w-full items-center justify-center gap-3 rounded-lg bg-white px-7 py-4 font-bold text-slate-950">
             Sign In <ArrowRight className="h-5 w-5" />
           </button>
@@ -776,8 +767,8 @@ function Admin({
           </div>
           <div className="soft-card rounded-lg p-6">
             <h2 className="mb-6 text-xl font-extrabold">Contact + Footer Links</h2>
-            <p className="mb-5 text-sm text-slate-400">WhatsApp and Email power the Contact page. Instagram, GitHub, LinkedIn, and YouTube power the footer icons.</p>
-            {(['whatsapp', 'email', 'instagram', 'github', 'linkedin', 'youtube'] as const).map((key) => (
+            <p className="mb-5 text-sm text-slate-400">WhatsApp and Email power the Contact page. Instagram, GitHub, and LinkedIn power the footer icons.</p>
+            {(['whatsapp', 'email', 'instagram', 'github', 'linkedin'] as const).map((key) => (
               <label key={key} className="mb-5 block text-sm font-bold capitalize text-slate-300">
                 {key === 'whatsapp' ? 'WhatsApp number or wa.me URL' : key === 'email' ? 'Email address' : `${key} URL`}
                 <input name={key} defaultValue={settings[key]} className="form-input mt-3" />
@@ -822,112 +813,60 @@ export default function App() {
     document.body.classList.remove('light-surface');
   }, []);
 
-  useEffect(() => {
-    async function loadProjects() {
-      const { supabase } = await import('./lib/supabase');
-      const { data, error } = await supabase.from('projects').select('*').order('display_order', { ascending: true });
-      if (error) {
-        pushToast('Supabase projects table not ready. Using default sample projects.', 'error');
-        return;
+  async function persistToGitHub(newProjects: Project[]) {
+    const res = await fetch('/api/save-projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projects: newProjects })
+    });
+    
+    if (!res.ok) {
+      if (res.status === 401) {
+        sessionStorage.removeItem('yash-admin');
+        window.location.reload();
+        throw new Error('Your session has expired. Please log in again.');
       }
-      if (data && data.length > 0) {
-        setProjectsState(data);
-      }
+      const err = await res.json().catch(() => ({ error: 'Failed to contact API' }));
+      throw new Error(err.error || 'Failed to save to GitHub');
     }
+  }
 
-    void loadProjects();
-  }, []);
-
-  async function saveProjectToSupabase(project: Project) {
-    const { supabase } = await import('./lib/supabase');
-    
-    const isSupabaseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      project.id
-    );
-    const isUpdate = isSupabaseId && projects.some((item) => item.id === project.id);
-    
+  async function saveProjectLocally(project: Project) {
+    const isUpdate = projects.some((item) => item.id === project.id);
     const newDisplayOrder = Math.max(0, ...projects.map(p => p.display_order || 0)) + 1;
 
-    const payload = {
-      title: project.title,
-      description: project.description,
-      tech_stack: project.tech_stack,
-      thumbnail_url: project.thumbnail_url,
-      live_link: project.live_link,
-      github_link: project.github_link,
-      featured: project.featured,
-      category: project.category,
+    const nextProject = {
+      ...project,
       display_order: isUpdate ? project.display_order : newDisplayOrder,
     };
 
-    const query = isUpdate
-      ? supabase.from('projects').update(payload).eq('id', project.id).select().single()
-      : supabase.from('projects').insert(payload).select().single();
+    const nextProjects = isUpdate 
+      ? projects.map((item) => (item.id === nextProject.id ? nextProject : item)) 
+      : [nextProject, ...projects];
 
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(`Supabase save failed: ${error.message}`);
-    }
-    if (!data) {
-      throw new Error('Supabase save failed: no project returned.');
-    }
-
-    setProjectsState((current) =>
-      isUpdate ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current]
-    );
+    await persistToGitHub(nextProjects);
+    setProjectsState(nextProjects);
   }
 
-  async function deleteProjectFromSupabase(projectId: string) {
-    const { supabase } = await import('./lib/supabase');
+  async function deleteProjectLocally(projectId: string) {
     const targetProject = projects.find((p) => p.id === projectId);
 
     // Automatically remove Cloudinary asset to prevent orphaned storage
     if (targetProject?.thumbnail_url) {
       void deleteImage(targetProject.thumbnail_url);
     }
-
-    const { error } = await supabase.from('projects').delete().eq('id', projectId);
-    if (error) {
-      throw new Error(`Supabase delete failed: ${error.message}`);
-    }
     
     const remaining = projects.filter((project) => project.id !== projectId);
     const normalized = normalizeDisplayOrder(remaining);
     
-    if (normalized.length > 0) {
-      const updates = normalized.map(p => ({
-        id: p.id, title: p.title, description: p.description, tech_stack: p.tech_stack, thumbnail_url: p.thumbnail_url, live_link: p.live_link, github_link: p.github_link, featured: p.featured, category: p.category, display_order: p.display_order
-      }));
-      await supabase.from('projects').upsert(updates);
-    }
-    
+    await persistToGitHub(normalized);
     setProjectsState(normalized);
   }
 
-  async function saveOrderToSupabase(reorderedProjects: Project[]) {
-    const { supabase } = await import('./lib/supabase');
-    const updates = reorderedProjects.map(p => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      tech_stack: p.tech_stack,
-      thumbnail_url: p.thumbnail_url,
-      live_link: p.live_link,
-      github_link: p.github_link,
-      featured: p.featured,
-      category: p.category,
-      display_order: p.display_order
-    }));
-    
+  async function saveOrderLocally(reorderedProjects: Project[]) {
+    await persistToGitHub(reorderedProjects);
     setProjectsState(reorderedProjects);
-
-    const { error } = await supabase.from('projects').upsert(updates);
-    if (error) {
-      setProjectsState(projects);
-      pushToast(`Failed to save order: ${error.message}`, 'error');
-    } else {
-      pushToast('Project order updated.', 'success');
-    }
+    pushToast('Project order updated. Vercel is building the site!', 'success');
   }
 
   // Use display_order for all lists
@@ -946,9 +885,9 @@ export default function App() {
           element={
             <Admin
               projects={projects}
-              onSaveProject={saveProjectToSupabase}
-              onDeleteProject={deleteProjectFromSupabase}
-              onReorderProjects={saveOrderToSupabase}
+              onSaveProject={saveProjectLocally}
+              onDeleteProject={deleteProjectLocally}
+              onReorderProjects={saveOrderLocally}
               settings={settings}
               setSettings={setSettings}
               pushToast={pushToast}
@@ -962,7 +901,6 @@ export default function App() {
           <a href={settings.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="transition hover:text-blue-400"><Instagram className="h-4 w-4" /></a>
           <a href={settings.github} target="_blank" rel="noreferrer" aria-label="GitHub" className="transition hover:text-blue-400"><Github className="h-4 w-4" /></a>
           <a href={settings.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="transition hover:text-blue-400"><Linkedin className="h-4 w-4" /></a>
-          <a href={settings.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="transition hover:text-blue-400"><Youtube className="h-4 w-4" /></a>
         </span>
       </footer>
     </AppShell>

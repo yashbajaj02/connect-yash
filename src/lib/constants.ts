@@ -9,14 +9,10 @@ import {
   Mail,
   Phone,
   Sparkles,
-  Youtube,
 } from 'lucide-react';
 import type { Project } from '../types';
 
-export const adminCredentials = {
-  email: 'enquirybusiness06@gmail.com',
-  password: 'Yashbajaj@0212',
-};
+
 
 export const contact = {
   email: 'enquirybusiness06@gmail.com',
@@ -27,7 +23,6 @@ export const socialLinks = [
   { label: 'Instagram', href: 'https://www.instagram.com/yash___bajaj/', icon: Instagram },
   { label: 'GitHub', href: 'https://github.com/yashbajaj02', icon: Github },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/yashbajaj02/', icon: Linkedin },
-  { label: 'YouTube', href: 'https://www.youtube.com/@LyricJunction', icon: Youtube },
 ];
 
 export const skills = [
@@ -49,7 +44,6 @@ export const focusAreas = [
   'SaaS Ideas',
   'Automation Systems',
   'Content Creation',
-  'YouTube Growth',
   'Instagram Branding',
 ];
 
@@ -67,7 +61,7 @@ export const experience = [
   {
     icon: Sparkles,
     title: 'Creative digital growth',
-    body: 'Exploring content systems, Instagram branding, YouTube growth, and startup validation loops.',
+    body: 'Exploring content systems, Instagram branding, and startup validation loops.',
   },
 ];
 
