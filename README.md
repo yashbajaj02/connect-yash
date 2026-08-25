@@ -1,83 +1,104 @@
 <div align="center">
 
-# ⚡ Connect
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:050505,50:111827,100:06b6d4&height=230&section=header&text=CONNECT&fontSize=76&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Personal%20Developer%20Portfolio&descAlignY=61&descSize=20" width="100%"/>
 
-### A Modern Developer Portfolio & Personal Brand Website
+<br/>
 
-A premium, responsive developer portfolio built to showcase projects, skills, certifications, experience, and digital work — with a secure admin panel, Cloudinary-powered media management, and GitHub-based project persistence.
+<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=18&duration=2600&pause=900&color=38BDF8&center=true&vCenter=true&width=650&lines=Developer.;Builder.;Problem+Solver.;Designer.;Building+real+things+with+code." />
 
-<br />
+<br/><br/>
 
-[![Live Website](https://img.shields.io/badge/🌐_Live_Website-connectyash.vercel.app-000000?style=for-the-badge)](https://connectyash.vercel.app)
-[![GitHub](https://img.shields.io/badge/GitHub-yashbajaj02%2Fconnect--yash-181717?style=for-the-badge&logo=github)](https://github.com/yashbajaj02/connect-yash)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev)
-[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
-
-<br />
-
-**Designed • Built • Secured • Deployed by Yash Bajaj**
+<a href="https://connectyash.vercel.app">
+<img src="https://img.shields.io/badge/ENTER_CONNECT-06B6D4?style=for-the-badge&logo=vercel&logoColor=white"/>
+</a>
 
 </div>
 
 ---
 
-## ✨ Overview
+<div align="center">
 
-**Connect** is my personal developer portfolio and digital identity platform.
+### `SYSTEM_STATUS`
 
-Instead of being just a static portfolio, Connect includes a secure administration system that allows project content to be managed dynamically while keeping the public website fast and lightweight.
+<img src="https://img.shields.io/badge/STATUS-ONLINE-22C55E?style=flat-square"/>
+<img src="https://img.shields.io/badge/BUILD-PASSING-22C55E?style=flat-square"/>
+<img src="https://img.shields.io/badge/DEPLOY-VERCEL-000000?style=flat-square&logo=vercel"/>
+<img src="https://img.shields.io/badge/MEDIA-CLOUDINARY-3448C5?style=flat-square&logo=cloudinary"/>
+<img src="https://img.shields.io/badge/DATA-GITHUB-181717?style=flat-square&logo=github"/>
 
-The project is designed around a simple principle:
+</div>
 
-> **Keep the frontend fast. Keep secrets server-side. Keep project data under version control.**
-
----
-
-## 🚀 Highlights
-
-- ⚡ Modern React + TypeScript architecture
-- 🎨 Premium responsive UI
-- 🌙 Dark & Light theme
-- 📱 Mobile-first responsive layouts
-- 📂 Dynamic project showcase
-- 🔐 Secure server-side Admin authentication
-- ☁️ Cloudinary-powered image management
-- 🔄 GitHub-based project persistence
-- 🖼️ Optimized image delivery through Cloudinary CDN
-- 🎯 Manual project ordering
-- 🖱️ Drag & Drop project management
-- 📧 Contact form integration
-- 🔍 SEO-friendly structure
-- ♿ Accessibility-focused UI
-- 🚀 Vercel production deployment
-- 🛡️ Server-side handling of sensitive credentials
+<br/>
 
 ---
 
-# 🧠 Architecture
+# `// FEATURED_PROJECTS`
 
-Connect follows a lightweight architecture where the public website remains mostly static while administrative operations are handled securely through serverless APIs.
+<table>
+<tr>
+
+<td width="33%" valign="top">
+
+### 📁 FileWise
+
+**File Management System**
+
+Organize, manage and access files seamlessly through the cloud.
+
+`🚧 IN PROGRESS`
+
+</td>
+
+<td width="33%" valign="top">
+
+### 👥 Splity
+
+**Expense Management**
+
+Split expenses, track balances and settle up with friends.
+
+`✅ COMPLETED`
+
+</td>
+
+<td width="33%" valign="top">
+
+### 💻 Connect
+
+**Developer Portfolio**
+
+The portfolio you're currently exploring.
+
+`🟢 LIVE`
+
+</td>
+
+</tr>
+</table>
+
+<div align="center">
+
+`🚀 More projects. Better ideas. Building in public.`
+
+</div>
+
+---
+
+# `// WHAT_IS_CONNECT?`
+
+> **What if a portfolio wasn't just a portfolio?**
+
+Connect is my personal developer platform — built to showcase my projects, skills, achievements and work while experimenting with real-world product architecture.
+
+It's designed around a simple idea:
 
 ```text
-                         ┌─────────────────────┐
-                         │    Connect Website  │
-                         │    React + Vite     │
-                         └──────────┬──────────┘
-                                    │
-                  ┌─────────────────┼─────────────────┐
-                  │                 │                 │
-                  ▼                 ▼                 ▼
-             Cloudinary          Vercel           Formspree
-             Images/CDN        Serverless API     Contact Form
-                  │                 │
-                  │        ┌────────┴────────┐
-                  │        │                 │
-                  │        ▼                 ▼
-                  │   Secure Auth        GitHub API
-                  │        │                 │
-                  │        │                 ▼
-                  │        │          src/data/projects.ts
-                  │        │
-                  └────────┴────────────────────────────
+FAST
+  ↓
+SECURE
+  ↓
+RESPONSIVE
+  ↓
+MAINTAINABLE
+  ↓
+ACTUALLY USEFUL
