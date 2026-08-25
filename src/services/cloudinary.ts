@@ -1,6 +1,4 @@
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'atc7jukt';
-const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '581542198426464';
-const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET || 'qs242Xtphy9zM4dtphj09RqWXNE';
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -30,12 +28,7 @@ export function validateImageFile(file: File): ValidationResult {
   return { valid: true };
 }
 
-async function sha1Hex(message: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+
 
 /**
  * Extracts Cloudinary public_id (including folder path) from a Cloudinary asset URL.
@@ -82,19 +75,32 @@ export function uploadImage(
       const formData = new FormData();
       formData.append('file', file);
 
-      if (API_KEY && API_SECRET) {
-        formData.append('api_key', API_KEY);
-        formData.append('timestamp', String(timestamp));
-        formData.append('folder', folder);
+      let uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-        const stringToSign = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
-        const signature = await sha1Hex(stringToSign);
-        formData.append('signature', signature);
-      } else if (UPLOAD_PRESET) {
-        formData.append('upload_preset', UPLOAD_PRESET);
+      try {
+        const signRes = await fetch(`/api/cloudinary-sign?folder=${folder}`);
+        if (signRes.ok) {
+          const signData = await signRes.json();
+          formData.append('api_key', signData.apiKey);
+          formData.append('timestamp', String(signData.timestamp));
+          formData.append('folder', signData.folder);
+          formData.append('signature', signData.signature);
+          if (signData.cloudName) {
+            uploadUrl = `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`;
+          }
+        } else if (UPLOAD_PRESET) {
+          formData.append('upload_preset', UPLOAD_PRESET);
+        } else {
+          return reject(new Error('Unauthorized to upload. Please sign in as admin.'));
+        }
+      } catch (err) {
+        if (UPLOAD_PRESET) {
+          formData.append('upload_preset', UPLOAD_PRESET);
+        } else {
+          return reject(new Error('Cannot communicate with signing server.'));
+        }
       }
 
-      const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
       const xhr = new XMLHttpRequest();
       xhr.open('POST', uploadUrl, true);
 
@@ -153,22 +159,15 @@ export async function deleteImage(publicIdOrUrl: string): Promise<boolean> {
   }
 
   try {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const formData = new FormData();
-
-    if (API_KEY && API_SECRET) {
-      formData.append('public_id', publicId);
-      formData.append('api_key', API_KEY);
-      formData.append('timestamp', String(timestamp));
-
-      const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`;
-      const signature = await sha1Hex(stringToSign);
-      formData.append('signature', signature);
-
-      const destroyUrl = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`;
-      const res = await fetch(destroyUrl, { method: 'POST', body: formData });
+    const res = await fetch('/api/cloudinary-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicId })
+    });
+    
+    if (res.ok) {
       const data = await res.json();
-      return data.result === 'ok';
+      return data.success === true;
     }
     return false;
   } catch (error) {
