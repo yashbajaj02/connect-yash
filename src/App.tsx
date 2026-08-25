@@ -8,6 +8,8 @@ import {
   Database,
   Edit3,
   ExternalLink,
+  Eye,
+  EyeOff,
   Github,
   Globe,
   GripVertical,
@@ -409,6 +411,7 @@ function Admin({
   pushToast: (text: string, tone?: ToastMessage['tone']) => void;
 }) {
   const [loggedIn, setLoggedIn] = useState(() => sessionStorage.getItem('yash-admin') === 'true');
+  const [showPassword, setShowPassword] = useState(false);
   const [tab, setTab] = useState<'projects' | 'settings'>('projects');
   const [editing, setEditing] = useState<Project | null>(null);
   const [uploadPreview, setUploadPreview] = useState('');
@@ -532,7 +535,23 @@ function Admin({
           <h1 className="text-center text-3xl font-extrabold">Admin Login</h1>
           <p className="mt-3 text-center text-slate-400">Sign in to manage your portfolio</p>
           <label className="mb-3 mt-10 block text-sm font-bold text-slate-300">Password</label>
-          <input name="password" type="password" placeholder="Enter password" required className="form-input mb-7" />
+          <div className="relative mb-7">
+            <input 
+              name="password" 
+              type={showPassword ? "text" : "password"} 
+              placeholder="Enter password" 
+              required 
+              className="form-input w-full pr-12" 
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 transition"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           <button className="inline-flex w-full items-center justify-center gap-3 rounded-lg bg-white px-7 py-4 font-bold text-slate-950">
             Sign In <ArrowRight className="h-5 w-5" />
           </button>
